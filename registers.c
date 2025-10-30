@@ -1,4 +1,4 @@
-//ssh for git: 
+//ssh for git: git@github.com:Aravindsva/Registers_project.git 
 #include <stdio.h>
 #include<string.h>
 #include <stdlib.h>
