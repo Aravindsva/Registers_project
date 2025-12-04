@@ -1,5 +1,6 @@
 //ssh for git: git@github.com:Aravindsva/Registers_project.git 
 #include <stdio.h>
+#include<stdint.h>
 #include<string.h>
 #include <stdlib.h>
 #define BYTE_1 8
@@ -25,12 +26,82 @@ void pull_up(struct registers **);
 void up(int,struct registers **);
 void display(struct registers* );
 void freelist(struct registers**);
+void write_in_file(struct registers*,const char*);
 void input_check();
+void existing_files();
+int assert_number_list_check(struct registers*,int);
+uint8_t file_name_compare(const char*,uint8_t);
+void clear_buffer();
+int check_assert_number_file(int);
 int main(int argc,char* argv[]) 
 {
 	int choice;
 	char proceed='y';
+	uint8_t choice_try=0;
+	uint8_t file_length;
 	struct registers *head = NULL;
+	uint8_t file_trial=0;
+	char file_name[50];
+	if(argc==1)
+	{
+		printf("Existing files: \n");
+		existing_files();
+		printf("Enter a .txt file to store the register information.\n");
+		while(file_trial<3)
+		{
+			printf("Chance number %d/3.",file_trial+1);
+			printf("Enter a .txt file: ");
+			//fgets(file_name,sizeof(file_name),stdin);
+			scanf("%s",file_name);
+			input_check();
+			file_length=strlen(file_name);
+			/*if(file_name[file_length-1]=='\n')
+			{
+				file_name[file_length-1]='\0';
+			}*/
+			uint8_t match=file_name_compare(file_name,file_length);
+			if(match==1)
+			{
+				break;
+			}
+			else if(match==0)
+			{
+				file_trial++;
+				printf("Please enter a valid text file name with .txt.\n");
+			}
+		}
+		if(file_trial==3)
+		{
+			printf("The file will be stored in the default file- file.txt.\n");
+		}
+	}
+	else if(argc==2)
+	{
+		if(strcmp(argv[1],"-h")==0)
+		{
+			printf("(execution command) (enter a file name you want to add the register to.)\n");
+			printf("If there is no file name try to enter while in code, otherwise it will be added to the default file- ""file.txt""\n");
+			return 0;
+		}
+		else //if(strcmp(argv[1],
+		{
+			file_length=strlen(argv[1]);
+			uint8_t match=file_name_compare(argv[1],file_length);
+                        while(file_trial<3)
+			{
+				if(match==1)
+                        {
+                                break;
+                        }
+                        else if(match==0)
+                        {
+				file_trial++;
+                                printf("Please enter a valid text file name with .txt.\n");
+                        }
+			}
+		}
+
+	}
 	while(proceed=='y')
     	{
 	    printf("1- Add a register.\n");
@@ -43,7 +114,7 @@ int main(int argc,char* argv[])
 	    if(scanf("%d",&choice)!=1)
 	    {
 		    printf("Enter a valid choice.\n");
-		    while(getchar()!='\n');
+		    clear_buffer();
 	    }
 	    else if(getchar()!='\n')
 	    {
@@ -76,11 +147,45 @@ int main(int argc,char* argv[])
 			    break;
 	    }
 	    }
-	    printf("Do you want to continue?(y or n)");
-	    proceed=getchar();
-	    while(getchar()!='\n');
+	    //proceed=getchar();
+	    choice_try=0;
+	    while(choice_try<3)
+	    {
+		    printf("Do you want to continue?(y or n)");
+		    proceed=getchar();
+		    //while(getchar()!='\n');
+		    if(proceed=='\n')
+		    {
+			    printf("Enter only y or n.\n");
+			    choice_try++;
+		    }
+		    else if((proceed!='y')&&(proceed!='n'))
+		    {
+			    clear_buffer();
+			    printf("Please enter only y or n.\n");
+			    choice_try++;
+		    }
+		    else if((proceed=='y')||(proceed=='n'))
+		    {
+			    break;
+		    }
+	    }
 	    if(proceed=='n')
 	    {
+		    printf("Before comapring");
+		    if((argc==2)&&(file_trial==3))
+		    {
+			    write_in_file(head,"file.txt");
+		    }
+		    else if((argc==1)&&(file_trial<3))
+		    {
+			    write_in_file(head,file_name);
+		    }
+		    else if(argc>1)
+		    {
+			    write_in_file(head,argv[1]);
+		    }
+		    printf("After writing in file");
 		    freelist(&head);
 		    printf("The list is emptied.\n");
 		    return 0;
@@ -100,7 +205,7 @@ void add_register(struct registers **head)
     if(getchar()!='\n')
     {
 	    printf("Enter a valid input 1 or 2. \n");
-	    while(getchar()!='\n');
+	    clear_buffer();
 	    return;
     }
     if (new_register->size == '1') 
@@ -126,7 +231,7 @@ void add_register(struct registers **head)
 	if(getchar()!='\n')
 	{
 		printf("Enter a valid input. \n");
-		while(getchar()!='\n');
+		clear_buffer();
 		return;
 	}
 	if((temp_value>65535)||(temp_value<0))
@@ -149,6 +254,7 @@ void add_register(struct registers **head)
     {
 	    temp=*head;
 	    flag=1;
+	    printf("Chance number (%d/3).",(try+1));
 	    printf("Enter assert number: ");
 	    scanf("%d",&new_register->assert_number);
 	    input_check();
@@ -156,6 +262,7 @@ void add_register(struct registers **head)
 	    {
 		    if(temp->assert_number==new_register->assert_number)
 		    {
+			    printf("Assert number already exists in the current list. ");
 			    printf("Enter a unique assert number.\n");
 			    flag=0;
 			    break;
@@ -163,19 +270,36 @@ void add_register(struct registers **head)
 		    prev=temp;
 		    temp=temp->next;
 	    }
-	    if(flag)
+	    if(flag==1)
 	    {
-		    new_register->next=NULL;
-		    if(*head==NULL)
+	    flag=check_assert_number_file(new_register->assert_number);
+	    }
+	    if(flag)
+            {
+		    FILE *assert_file_ptr=fopen("assert_number.txt","a+");
+		    if(assert_file_ptr==NULL)
 		    {
-			    *head=new_register;
+			    printf("Assert number file not opened");
+			    return;
 		    }
-		    else
-		    {
-			    prev->next=new_register;
-		    }
-		    printf("Register added successfully. \n");
-		    return;
+		    fseek(assert_file_ptr,0,SEEK_END);
+		    fprintf(assert_file_ptr,"%d\n",new_register->assert_number);
+		    fclose(assert_file_ptr);
+	    }
+		if(flag)
+	    {
+			    new_register->next=NULL;
+		    
+			    if(*head==NULL)
+			    {
+				    *head=new_register;
+			    }
+			    else
+			    {
+				    prev->next=new_register;
+			    }
+			    printf("Register added successfully. \n");
+			    return;
 	    }
 	    try++;
     }
@@ -239,6 +363,7 @@ void remove_register(struct registers **head)
 	{
 		*head=temp->next;
 		free(temp);
+		printf("The register has sucessfully been removed.\n");
 		return;
 	}
 	while(temp->next!=NULL)
@@ -248,6 +373,7 @@ void remove_register(struct registers **head)
 			free_temp=temp->next;
 			temp->next=temp->next->next;
 			free(free_temp);
+			printf("The register has been sucessfully removed.");
 			return;
 		}
 		temp=temp->next;
@@ -321,9 +447,17 @@ void toggle(int key, struct registers **temp)
 void pull_down(struct registers **head)
 {
 	struct registers *temp=*head;
-	int bit,key;
+	int bit,key,flag;
 	printf("Enter the asset number of the register to select: ");
 	scanf("%d",&key);
+	//clear_buffer();
+	flag=assert_number_list_check(temp,key);
+	if(flag==1)
+	{
+		clear_buffer();
+		printf("The assert number does not exist.\n");	
+		return;
+	}
 	input_check();
 	if(temp==NULL)
 	{
@@ -338,11 +472,10 @@ void pull_down(struct registers **head)
 		if(temp->assert_number==key)
 		{
 			down(bit,&temp);
-			getchar();
+			//getchar();
 		}
 		temp=temp->next;
 	}
-		printf("Assert number not found.\n");
 }
 void down(int bit,struct registers **temp)
 {
@@ -397,9 +530,16 @@ void down(int bit,struct registers **temp)
 void pull_up(struct registers **head)
 {
 	struct registers *temp=*head;
-	int key,bit;
+	int key,bit,flag;
 	printf("Enter the assert number; ");
 	scanf("%d",&key);
+	flag=assert_number_list_check(temp,key);
+	if(flag==1)
+	{
+		clear_buffer();
+		printf("Assert number does not exist.\n");
+		return;
+	}
 	input_check();
 	if(temp==NULL)
 	{
@@ -417,7 +557,6 @@ void pull_up(struct registers **head)
 		}
 		temp=temp->next;
 	}
-	printf("Assert number not found.\n");
 }
 void up(int bit,struct registers **temp)
 {
@@ -486,4 +625,117 @@ void input_check()
 		while(getchar()!='\n');
 		return;
 	}
+}
+void write_in_file(struct registers *temp,const char* str)
+{
+	printf("Opening file");
+	FILE *fptr=fopen(str,"a+");
+	if(fptr==NULL)
+	{
+		fprintf(stderr,"There has been an error in opening the file.");
+		return;
+	}
+	fseek(fptr,0,SEEK_END);
+	if(ftell(fptr)==0)
+	{
+		FILE *file_list_ptr=fopen("file_list.txt","a+");
+		fseek(file_list_ptr,0,SEEK_END);
+		fprintf(file_list_ptr,"%s\n",str);	
+		fprintf(fptr,"Size Value Assert number\n"); 
+		fclose(file_list_ptr);
+	}
+	while(temp!=NULL)
+	{
+		if(temp->size=='1')
+		{
+			fprintf(fptr,"%c %5d %4d\n",temp->size,temp->value.data_1,temp->assert_number);
+		}
+		else if(temp->size=='2')
+		{
+			fprintf(fptr,"%c %5d %4d\n",temp->size,temp->value.data_2,temp->assert_number);
+		}
+		temp=temp->next;
+	}
+	fclose(fptr);
+}
+uint8_t file_name_compare(const char* file_name,uint8_t file_length)
+{
+	const char *text_compare=".txt";
+	uint8_t text_compare_length=strlen(text_compare);
+	if(file_length<text_compare_length)
+	{
+		return 0;
+	}
+	printf("File name: '%s', Length: %d\n", file_name, file_length);
+	for(int i=0;i<text_compare_length;i++)
+	{
+		if(file_name[file_length-text_compare_length+i]!=text_compare[i])
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+void existing_files()
+{
+	int character;
+	FILE *files=fopen("file_list.txt","r");
+	fseek(files,0,SEEK_SET);
+	while((character=fgetc(files))!=EOF)
+	{
+		putchar(character);
+	}
+	fclose(files);
+}
+int check_assert_number_file(int assert_number)
+{
+	uint8_t flag=1;
+	//uint8_t try=3;
+	int file_assert_number;
+	FILE *file_ptr=fopen("assert_number.txt","r");
+	if(file_ptr==NULL)
+	{
+		printf("Assert number File not opened.");
+		return 0;
+	}
+	//while(try>0)
+	//{
+		fseek(file_ptr,0,SEEK_SET);
+		while(fscanf(file_ptr,"%d",&file_assert_number)!=EOF)
+		{
+			if(assert_number==file_assert_number)
+			{
+				printf("Assert number already exist for a register in the file.\n");
+				flag=0;
+				break;
+			}
+		}
+		//printf("Ypu have %d tries left",(try-1));
+		//try--;
+	//}
+	fclose(file_ptr);
+	if(flag==1)
+		return 1;
+	else 
+		return 0;
+}
+int assert_number_list_check(struct registers* assert_number_temp,int key)
+{
+	uint8_t flag=1;
+	while(assert_number_temp!=NULL)
+	{
+		if(assert_number_temp->assert_number==key)
+		{
+			flag=0;
+		}
+		assert_number_temp=assert_number_temp->next;
+	}
+	if(flag==1)
+		return 1;
+	else
+		return 0;
+}
+void clear_buffer()
+{
+	while(getchar()!='\n');
 }
