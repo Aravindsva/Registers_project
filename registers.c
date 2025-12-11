@@ -31,6 +31,7 @@ void input_check();
 void existing_files();
 int assert_number_list_check(struct registers*,int);
 uint8_t file_name_compare(const char*,uint8_t);
+void write_assert_number_file(struct registers*);
 void clear_buffer();
 int check_assert_number_file(int);
 int main(int argc,char* argv[]) 
@@ -67,7 +68,8 @@ int main(int argc,char* argv[])
 			else if(match==0)
 			{
 				file_trial++;
-				printf("Please enter a valid text file name with .txt.\n");
+				if(file_trial<3)
+					printf("Please enter a valid text file name with .txt.\n");
 			}
 		}
 		if(file_trial==3)
@@ -89,7 +91,7 @@ int main(int argc,char* argv[])
 			uint8_t match=file_name_compare(argv[1],file_length);
                         while(file_trial<3)
 			{
-				if(match==1)
+			if(match==1)
                         {
                                 break;
                         }
@@ -97,7 +99,7 @@ int main(int argc,char* argv[])
                         {
 				file_trial++;
                                 printf("Please enter a valid text file name with .txt.\n");
-                        }
+			}
 			}
 		}
 
@@ -172,6 +174,7 @@ int main(int argc,char* argv[])
 	    }
 	    if(proceed=='n')
 	    {
+		    write_assert_number_file(head);
 		    printf("Before comapring");
 		    if((argc==2)&&(file_trial==3))
 		    {
@@ -274,7 +277,7 @@ void add_register(struct registers **head)
 	    {
 	    flag=check_assert_number_file(new_register->assert_number);
 	    }
-	    if(flag)
+	    /*if(flag)
             {
 		    FILE *assert_file_ptr=fopen("assert_number.txt","a+");
 		    if(assert_file_ptr==NULL)
@@ -285,7 +288,7 @@ void add_register(struct registers **head)
 		    fseek(assert_file_ptr,0,SEEK_END);
 		    fprintf(assert_file_ptr,"%d\n",new_register->assert_number);
 		    fclose(assert_file_ptr);
-	    }
+	    }*/
 		if(flag)
 	    {
 			    new_register->next=NULL;
@@ -328,7 +331,7 @@ void display(struct registers* head)
 	struct registers *temp=head;
 	if(temp==NULL)
 	{
-		printf("The register is empty.");
+		printf("The register is empty.\n");
 		return;
 	}
 	while(temp!=NULL)
@@ -734,6 +737,23 @@ int assert_number_list_check(struct registers* assert_number_temp,int key)
 		return 1;
 	else
 		return 0;
+}
+void write_assert_number_file(struct registers* temp)
+{
+                    FILE *assert_file_ptr=fopen("assert_number.txt","a+");
+                    if(assert_file_ptr==NULL)
+                    {
+                            printf("Assert number file not opened");
+                            return;
+                    }
+                    fseek(assert_file_ptr,0,SEEK_END);
+                    while(temp!=NULL)
+		    {
+		    	fprintf(assert_file_ptr,"%d\n",temp->assert_number);
+			temp=temp->next;
+		    }
+		    fclose(assert_file_ptr);
+		    return;
 }
 void clear_buffer()
 {
